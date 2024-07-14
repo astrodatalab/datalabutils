@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-"""Tests for `datalabutils` package."""
+"""Tests for `photoz_utils`."""
 
 import pytest
 
 
-from datalabutils import datalabutils
+from datalabutils import photoz_utils
 
 
 @pytest.fixture
@@ -18,7 +18,8 @@ def response():
     # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
 
 
-def test_content(response):
+def test_delz(response):
     """Sample pytest test function with the pytest fixture as an argument."""
     # from bs4 import BeautifulSoup
     # assert 'GitHub' in BeautifulSoup(response.content).title.string
+    assert photoz_utils.delz(1,2) == (1-2.0) / (1+2.0)
