@@ -6,23 +6,23 @@ readme = "README.rst"
 authors = [{name = "Tuan Do", email = "tdo@astro.ucla.edu"}]
 maintainers = [{name = "Tuan Do", email = "tdo@astro.ucla.edu"}]
 license = {text = "Not open source"}
+requires-python=">=3.10"
 
-[dependencies]
-matplotlib = "*"
-numpy = "*"
-pandas = "*"
-seaborn = "*"
-tabulate = "*"
-scikit-learn = "*"
-astropy = "*"
-scipy = "*"
 
+dependencies = [
+  "matplotlib",
+  "numpy",
+  "pandas",
+  "seaborn",
+  "tabulate",
+  "scikit-learn",
+  "astropy",
+  "scipy"
+]
 [optional-dependencies]
 dev = [
     "coverage",  # testing
-    "mypy",  # linting
     "pytest",  # testing
-    "ruff"  # linting
 ]
 
 [urls]
