@@ -1,5 +1,5 @@
 [project]
-name = "datalabutils"
+name = "ucla-datalabutils"
 version = "0.1.0"
 description = "Utility functions from UCLA Astrophysics Data Lab"
 readme = "README.rst"
