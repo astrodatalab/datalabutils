@@ -17,8 +17,10 @@ dependencies = [
   "tabulate",
   "scikit-learn",
   "astropy",
-  "scipy"
+  "scipy",
+  "tensorflow[tensorflow]>=2.17.0",
 ]
+
 [optional-dependencies]
 dev = [
     "coverage",  # testing
