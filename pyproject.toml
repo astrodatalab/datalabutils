@@ -1,6 +1,6 @@
 [project]
 name = "ucla-datalabutils"
-version = "0.1.0"
+version = "0.1.1"
 description = "Utility functions from UCLA Astrophysics Data Lab"
 readme = "README.rst"
 authors = [{name = "Tuan Do", email = "tdo@astro.ucla.edu"}]
