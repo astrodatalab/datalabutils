@@ -6,6 +6,7 @@ import seaborn as sns
 import os
 from datetime import datetime
 from tabulate import tabulate
+from collections import defaultdict
 
 from sklearn.model_selection import train_test_split
 from astropy.stats import biweight_location, biweight_midvariance
@@ -131,24 +132,6 @@ def split_photoz_data(df, test_size=0.2):
     return X_train, X_test, z_train, z_test
 
 
-def filter_nearest_galaxies(input_csv,output_csv):
-    '''
-    Examine the data to filter out duplicates based on their positions. TBD
-
-    Inputs:
-    ------
-    input_csv - input csv table. Should be the csv format for HSC data 
-                that our group has been using
-    
-    Outputs:
-    --------
-    output_csv - output csv file
-
-    '''
-    tab = read_csv(input_csv)
-
-
-
 def list_duplicates(seq):
     '''
     Returns a generator with the value and the counts of each
@@ -265,7 +248,7 @@ def calculate_scatter(z_photo, z_spec, conventional=False):
     """
     dz = delz(z_photo, z_spec)
     if (conventional):
-        s = median_abs_deviation(dz, scale='normal') # normal scale divides MAD by 0.67449
+        s = median_abs_deviation(dz, scale='normal') # normal scale multiplied MAD by 1.4826
     else:
         s = np.sqrt(biweight_midvariance(dz))
     return s
@@ -326,7 +309,29 @@ def calculate_percentage_change(i, j):
     else:
         return '{:.2f}'.format(100 * ((i - j) / j)) + ' %' # 2 decimal precision
         # measures percent increase
-        
+
+def calculate_catastrophic_outliers(z_photo, z_spec):
+    '''
+    Returns the catastrophic outlier metric, which is the absolute difference
+    between the predicted and spectroscopic redshifts. For more information on
+    the metric, see Singal+22
+
+    Inputs:
+    --------
+    z_photo: array
+        Photometric or predicted redshifts.
+    z_spec: array
+        Spectroscopic or actual redshifts.
+    
+    Output:
+    --------
+    co: float
+        Catastrophic outlier fraction 
+    '''
+    dz = np.abs(z_photo - z_spec)
+    co = np.mean(dz > 1.0)
+    return co
+
         
 ############################
 # DENSITY ESTIMATE METRICS #
