@@ -93,7 +93,7 @@ def clean_photoz_data(df, errors=False, filters=None, scaled=False):
     df = df[['g_cmodel_mag', 'r_cmodel_mag', 'i_cmodel_mag', 'z_cmodel_mag', 'y_cmodel_mag', 'specz_redshift']]
     df.columns = ['g_mag', 'r_mag', 'i_mag', 'z_mag', 'y_mag', 'z_spec']
     if (errors):
-        df = df.assign(z_spec_err=na_df.loc[:,'specz_redshift_err'])
+        df = df.assign(z_spec_err=df.loc[:,'specz_redshift_err'])
     
     # NORMALIZATION
     if (scaled):
@@ -215,6 +215,8 @@ def calculate_bias(z_photo, z_spec, conventional=False):
     HSC METRIC. Returns a single value. Bias is a measure of center of the
     distribution of prediction errors.
 
+    Parameters:
+    -----------
     z_photo: array
         Photometric or predicted redshifts.
     z_spec: array
@@ -223,6 +225,12 @@ def calculate_bias(z_photo, z_spec, conventional=False):
         Whether to use the conventional bias or not. If true, use conventional
         bias, or the median of the errors. If false, use the biweight bias, or
         the biweight location of the errors.
+
+    Returns:
+    -------
+    b: float
+        Bias metric, a measure of the center of the distribution of prediction
+        errors.
     """
     dz = delz(z_photo, z_spec)
     if (conventional):
@@ -234,9 +242,11 @@ def calculate_bias(z_photo, z_spec, conventional=False):
 
 def calculate_scatter(z_photo, z_spec, conventional=False):
     """
-    HSC METRIC. Returns a single value. Scatter is a measure of deviation in the
+    HSC METRIC. Scatter is a measure of deviation in the
     distribution of prediction errors.
 
+    Parameters:
+    -----------
     z_photo: array
         Photometric or predicted redshifts.
     z_spec: array
@@ -245,6 +255,12 @@ def calculate_scatter(z_photo, z_spec, conventional=False):
         Whether to use the conventional scatter or not. If true, use
         conventional scatter, or the normal MAD of the errors. If false, use the
         biweight bias, or the biweight midvariance of the errors.
+
+    Returns:
+    -------
+    s: float
+        Scatter metric, a measure of the deviation in the distribution of
+        prediction errors.
     """
     dz = delz(z_photo, z_spec)
     if (conventional):
@@ -256,8 +272,10 @@ def calculate_scatter(z_photo, z_spec, conventional=False):
 
 def calculate_outlier_rate(z_photo, z_spec, conventional=False):
     """
-    HSC METRIC. Returns a single value. Outlier rate is the fraction of prediction errors above a certain level.
+    HSC METRIC. Outlier rate is the fraction of prediction errors above a certain level.
 
+    Parameters:
+    -----------
     z_photo: array
         Photometric or predicted redshifts.
     z_spec: array
@@ -267,6 +285,11 @@ def calculate_outlier_rate(z_photo, z_spec, conventional=False):
         conventional outlier rate, or rate of absolute errors above 0.15. If
         false, use the biweight outlier rate, or rate of errors outside two
         deviations of the norm based on the distribution of errors.
+
+    Returns:
+    -------
+    eta: float
+        Outlier rate, the fraction of prediction errors above a certain level.
     """
     dz = delz(z_photo, z_spec)
     if (conventional):
@@ -284,12 +307,19 @@ def calculate_loss(z_photo, z_spec):
     """
     HSC METRIC. Returns an array. Loss is accuracy metric defined by HSC, meant
     to capture the effects of bias, scatter, and outlier all in one. This has
-    uses for both point and density estimation.
+    uses for both point and density estimation. See Tanaka+18 for more information.
 
+    Parameters:
+    -----------
     z_photo: array
         Photometric or predicted redshifts.
     z_spec: array
         Spectroscopic or actual redshifts.
+
+    Returns:
+    -------
+    L: array
+        Loss metric, a measure of the accuracy of the predictions.
     """
     dz = delz(z_photo, z_spec)
     gamma = 0.15
@@ -297,24 +327,33 @@ def calculate_loss(z_photo, z_spec):
     L = 1 - 1.0 / denominator
     return L
 
-
-def calculate_percentage_change(i, j):
+def calculate_rmse(z_photo, z_spec):
     """
-    Returns percent increase in some value with respect to j when applying i.
-        i: float
-        j: float
+    Alternative to the scatter metric, this is the root mean square of the
+    prediction errors. This is a measure of the deviation in the distribution
+    of prediction errors. It is more sensitive to outliers than the scatter
+    
+    Parameters:
+    -----------
+    z_photo: array
+        Photometric or predicted redshifts.
+    z_spec: array
+        Spectroscopic or actual redshifts.
+    
+    Returns:
+    -------
+    rms: float
+        Root mean square of the prediction errors.
     """
-    if i / j == 1:
-        return f'{0}%'
-    else:
-        return '{:.2f}'.format(100 * ((i - j) / j)) + ' %' # 2 decimal precision
-        # measures percent increase
+    dz = delz(z_photo, z_spec)
+    rms = np.sqrt(np.mean(np.square(dz)))
+    return rms
 
 def calculate_catastrophic_outliers(z_photo, z_spec):
     '''
     Returns the catastrophic outlier metric, which is the absolute difference
     between the predicted and spectroscopic redshifts. For more information on
-    the metric, see Singal+22
+    the metric, see Singal+20 and Singal+22 for more information.
 
     Inputs:
     --------
@@ -328,13 +367,23 @@ def calculate_catastrophic_outliers(z_photo, z_spec):
     co: float
         Catastrophic outlier fraction 
     '''
-    dz = np.abs(z_photo - z_spec)
-    co = np.mean(dz > 1.0)
+    co = np.mean(np.abs(z_photo - z_spec) > 1.0)
     return co
 
+def calculate_percentage_change(i, j):
+    """
+    Returns percent increase in some value with respect to j when applying i.
+        i: float
+        j: float
+    """
+    if i / j == 1:
+        return f'{0}%'
+    else:
+        return '{:.2f}'.format(100 * ((i - j) / j)) + ' %' # 2 decimal precision
+        # measures percent increase
         
 ############################
-# DENSITY ESTIMATE METRICS #
+# PROBABILISTIC METRICS #
 ############################
 
 
@@ -350,6 +399,8 @@ def calculate_PIT(z_photo_vectors, z_spec):
     would correspond to small unbiased errors with thin peaks. Slopes in the PIT
     correspond to biases in the PDFs.
 
+    Parameters:
+    -----------
     z_photo_vectors: array of arrays
         One array of predicted redshifts per galaxy.
     z_spec: array
@@ -394,7 +445,7 @@ def calculate_CRPS(z_photo_vectors, z_spec):
 ########################
 
 
-def get_point_metrics(z_photo, z_spec, binned=False):
+def get_point_metrics(z_photo, z_spec, binrange=np.linspace(0, 4, 21)):
     """
     Get a dataframe of the point estimate metrics given predictions.
 
@@ -408,10 +459,7 @@ def get_point_metrics(z_photo, z_spec, binned=False):
     """
 
     # CREATE BINS
-    if (binned):
-        bins = pd.cut(z_spec, bins=np.linspace(0, 4, 21))
-    else:
-        bins = pd.cut(z_spec, bins=np.linspace(0, 4, 2))
+    bins = pd.cut(z_spec, bins=binrange)
     true_grouped = z_spec.groupby(bins)
     pred_grouped = z_photo.groupby(bins)
 
@@ -440,15 +488,22 @@ def get_point_metrics(z_photo, z_spec, binned=False):
         # MSE
         mse = mean_squared_error(binned_z_true,binned_z_pred)
 
+        # RMS
+        rmse = calculate_rmse(binned_z_pred, binned_z_true)
+
+        # Catastrophic outliers
+        catastrophic_outliers = calculate_catastrophic_outliers(binned_z_pred, binned_z_true)
+
         # ADD TO ROW
         metrics_list.append([
             zspec_bin, count, L, bias_bw, bias_conv, 
-            scatter_bw, scatter_conv, outlier_bw, outlier_conv,mse])
+            scatter_bw, scatter_conv, outlier_bw, outlier_conv,mse, rmse, catastrophic_outliers])
 
     # DATAFRAME CONVERSION
     metrics_df = pd.DataFrame(metrics_list, columns=[
         'zspec_bin', 'count', 'L', 'bias_bw', 'bias_conv',
-        'scatter_bw', 'scatter_conv', 'outlier_bw', 'outlier_conv','mse'])
+        'scatter_bw', 'scatter_conv', 'outlier_bw', 'outlier_conv',
+        'mse', 'rmse', 'catastrophic_outliers'])
     return metrics_df
 
 
