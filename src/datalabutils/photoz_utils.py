@@ -460,8 +460,8 @@ def get_point_metrics(z_photo, z_spec, binrange=np.linspace(0, 4, 21)):
 
     # CREATE BINS
     bins = pd.cut(z_spec, bins=binrange)
-    true_grouped = z_spec.groupby(bins)
-    pred_grouped = z_photo.groupby(bins)
+    true_grouped = z_spec.groupby(bins, observed=False)
+    pred_grouped = z_photo.groupby(bins, observed=False)
 
     # METRICS PER BIN
     metrics_list = []
@@ -524,6 +524,159 @@ def get_density_metrics(z_photo_vectors, z_spec):
                                'CRPS': CRPS})
     return metrics_df
 
+########################
+# Compare Models       #
+########################
+
+published = {
+    'NN23':{
+        'predictionFile': '/data2/predictions/Jones2023/nn_evaluation.csv',
+        'Creator': 'Jones, Evan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoz',
+        'trueKey': 'spectroz'      
+    },
+    'BNN23':{
+        'predictionFile': '/data2/predictions/Jones2023/bnn_evaluation.csv',
+        'Creator': 'Jones, Evan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoz',
+        'trueKey': 'spectroz'   
+    },
+    'BNN24': {
+        'predictionFile': '/data2/predictions/Jones2024/cnn_evaluation.csv',
+        'Creator': 'Jones, Evan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoz',
+        'trueKey': 'specz'
+    },
+    'BCNN24': {
+        'predictionFile': '/data2/predictions/Jones2024/bcnn_evaluation.csv',
+        'Creator': 'Jones, Evan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoz',
+        'trueKey': 'specz'
+    }, 
+    'NN25': {
+        'predictionFile': '/data2/predictions/soriano_25_ground_truth_models/nn_1_final/galaxiesml_results_conformal.csv',
+        'Creator': 'Soriano, Jonathan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoZ_mean',
+        'trueKey': 'trueZ'
+    },
+    'BNN25': {
+        'predictionFile': '/data2/predictions/soriano_25_ground_truth_models/bnn_1_final_111121/galaxiesml_results_conformal.csv',
+        'Creator': 'Soriano, Jonathan',
+        'Dataset': 'GalaxiesML',
+        'predKey': 'photoZ_mean',
+        'trueKey': 'trueZ'
+    }
+}
+
+def get_published_model_metrics(binrange=np.linspace(0,4,2)):
+    """
+    Get the point estimate metrics for the published models.
+
+    Args:
+    -----
+    binrange: array-like
+        The range of redshifts to bin the metrics by. Default is np.linspace(0, 4, 21).
+    
+    Returns:
+    --------
+    metrics: DataFrame
+        DataFrame containing the point estimate metrics for each published model.
+    """
+    metrics = []
+    # Loop through each published model and get the metrics
+    for model_name, model_info in published.items():
+        prediction_file = model_info['predictionFile']
+        tab = pd.read_csv(prediction_file)
+
+        z_photo = tab[model_info['predKey']]
+        z_spec = tab[model_info['trueKey']]
+
+        metrics_df = get_point_metrics(z_photo, z_spec, binrange=binrange)
+
+        metrics_df.insert(loc=0, column='dataset', value= [model_info['Dataset']]*metrics_df.shape[0])
+        metrics_df.insert(loc=0, column='creator', value= [model_info['Creator']]*metrics_df.shape[0])
+        metrics_df.insert(loc=0, column='model', value=[model_name]*metrics_df.shape[0])
+    
+        metrics.append(metrics_df)
+
+    # Concatenate all the metrics DataFrames
+    metrics = pd.concat(metrics, ignore_index=True)
+    
+    return metrics
+
+def compare_models(z_photo, z_spec, model_names=None, dataset=None, creator=None, binrange=np.linspace(0,4,2), published_models=True):
+    """
+    Compare the point estimate metrics of different models.
+
+    Args:
+    -----
+    z_photo: List of Series or array
+        Photometric or predicted redshifts for each model to compare.
+    z_spec: List of Series or array
+        Spectroscopic or actual redshift
+    model_names: list of str, optional
+        Names of the models to compare. If None, uses the default names e.g. 'model_1', 'model_2', etc.
+    dataset: str, optional
+        Name of the dataset used for the models. If None, no dataset name is added.
+    creator: str, optional
+        Name of the creator of the models. If None, no creator name is added.
+    Returns:
+    --------
+    metrics: DataFrame
+        DataFrame containing the point estimate metrics for each model.
+    """
+
+    if type(z_photo) == list:
+        if len(z_photo) != len(z_spec):
+            raise ValueError("z_photo and z_spec must have the same length.")
+        
+        # Check if one or more entries in list are not Series
+        if not all(isinstance(z, pd.Series) for z in z_photo):
+            z_photo = [pd.Series(z) for z in z_photo]
+        if not all(isinstance(z, pd.Series) for z in z_spec):
+            z_spec = [pd.Series(z) for z in z_spec]
+    else:
+        if type(z_photo) == pd.Series:
+            z_photo = [z_photo]
+            z_spec = [z_spec]
+        elif type(z_photo) == np.ndarray:
+            z_photo = [pd.Series(z_photo)]
+            z_spec = [pd.Series(z_spec)]
+        else:
+            raise TypeError("z_photo and z_spec must be either a list, Series, or numpy array,")
+
+    # Check if model_names is provided, if not, create default names
+    if model_names is None:
+        model_names = [f'model_{i+1}' for i in range(len(z_photo))]
+    else:
+        if type(model_names) != list:
+            model_names = [model_names]
+    
+    if len(model_names) != len(z_photo):
+        raise ValueError("model_names must have the same length as z_photo and z_spec.")
+
+    # Get point metrics for each model
+    metrics = []
+    for i in range(len(z_photo)):
+        metrics_df = get_point_metrics(z_photo[i], z_spec[i], binrange=binrange)
+
+        metrics_df.insert(loc=0, column='model', value=[model_names[i]]*metrics_df.shape[0])
+        metrics_df.insert(loc=0, column='dataset', value=[dataset]*metrics_df.shape[0] if dataset else [np.nan]*metrics_df.shape[0])
+        metrics_df.insert(loc=0, column='creator', value=[creator]*metrics_df.shape[0] if creator else [np.nan]*metrics_df.shape[0])
+        metrics.append(metrics_df)
+    metrics = pd.concat(metrics, ignore_index=True)
+
+    if published_models:
+        # Get the published model metrics and concatenate with the current metrics
+        published_metrics = get_published_model_metrics(binrange=binrange)
+        metrics = pd.concat([published_metrics, metrics], ignore_index=True)
+
+    return metrics
 
 ######################
 # PLOTTING FUNCTIONS #
