@@ -543,7 +543,7 @@ published = {
         'predKey': 'photoz',
         'trueKey': 'spectroz'   
     },
-    'BNN24': {
+    'CNN24': {
         'predictionFile': '/data2/predictions/Jones2024/cnn_evaluation.csv',
         'Creator': 'Jones, Evan',
         'Dataset': 'GalaxiesML',
