@@ -530,28 +530,28 @@ def get_density_metrics(z_photo_vectors, z_spec):
 
 published = {
     'NN23':{
-        'predictionFile': '/data2/predictions/Jones2023/nn_evaluation.csv',
+        'predictionFile': '/data2/predictions/published_models/nn_jones.csv',
         'Creator': 'Jones, Evan',
         'Dataset': 'GalaxiesML',
         'predKey': 'photoz',
-        'trueKey': 'spectroz'      
+        'trueKey': 'specz'      
     },
     'BNN23':{
-        'predictionFile': '/data2/predictions/Jones2023/bnn_evaluation.csv',
+        'predictionFile': '/data2/predictions/published_models/bnn_jones.csv',
         'Creator': 'Jones, Evan',
         'Dataset': 'GalaxiesML',
         'predKey': 'photoz',
-        'trueKey': 'spectroz'   
+        'trueKey': 'specz'   
     },
     'CNN24': {
-        'predictionFile': '/data2/predictions/Jones2024/cnn_evaluation.csv',
+        'predictionFile': '/data2/predictions/published_models/cnn_jones.csv',
         'Creator': 'Jones, Evan',
         'Dataset': 'GalaxiesML',
         'predKey': 'photoz',
         'trueKey': 'specz'
     },
     'BCNN24': {
-        'predictionFile': '/data2/predictions/Jones2024/bcnn_evaluation.csv',
+        'predictionFile': '/data2/predictions/published_models/bcnn_jones.csv',
         'Creator': 'Jones, Evan',
         'Dataset': 'GalaxiesML',
         'predKey': 'photoz',
